@@ -10,14 +10,14 @@ import shutil
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import chromadb
-from embeddings import CustomEmbeddings
+from embeddings import CustomLangChainEmbeddings
 
 chromadb.api.client.SharedSystemClient.clear_system_cache()
 
 model = ChatOpenAI(model="gpt-4o", temperature=0, max_tokens=None, timeout=None, max_retries=2)
 
 # Initialize custom embeddings
-custom_embeddings = CustomEmbeddings()
+custom_embeddings = CustomLangChainEmbeddings()
 
 def doc_splitter(uploaded_file):
     """
@@ -125,6 +125,7 @@ if "file_processed" not in st.session_state:
 def query(q_text):
     db = Chroma(persist_directory=config.CHROMA_DIR, embedding_function=custom_embeddings)
     result = db.similarity_search_with_relevance_scores(q_text, k=5)
+    print(result)
     if len(result) == 0:
         print("I don't know")
         return
