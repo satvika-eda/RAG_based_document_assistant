@@ -97,7 +97,6 @@ def add_documents_to_vector_store(chunks):
 def query(q_text):
     db = Chroma(persist_directory=config.CHROMA_DIR, embedding_function=custom_embeddings)
     result = db.similarity_search_with_relevance_scores(q_text, k=5)
-    print(result)
     if len(result) == 0:
         print("I don't know")
         return
