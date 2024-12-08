@@ -37,7 +37,7 @@ class Embeddings:
         token_vectors = [self._vectorize_token(token) for token in tokens]
         return np.mean(token_vectors, axis=0)
 
-class CustomLangChainEmbeddings:
+class CustomEmbeddings:
     def __init__(self):
         self.embedding_model = Embeddings()
 

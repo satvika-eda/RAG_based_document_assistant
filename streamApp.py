@@ -10,16 +10,14 @@ import shutil
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import chromadb
-from PIL import Image
-import pytesseract
-from embeddings import CustomLangChainEmbeddings
+from embeddings import CustomEmbeddings
 
 chromadb.api.client.SharedSystemClient.clear_system_cache()
 
 model = ChatOpenAI(model="gpt-4o", temperature=0, max_tokens=None, timeout=None, max_retries=2)
 
 # Initialize custom embeddings
-custom_embeddings = CustomLangChainEmbeddings()
+custom_embeddings = CustomEmbeddings()
 
 def doc_splitter(uploaded_file):
     """
