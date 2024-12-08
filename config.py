@@ -2,7 +2,7 @@ import os
 
 DATA_DIR = "data"
 CHROMA_DIR = "chromadb"
-OPENAI_API_KEY = ""
+OPENAI_API_KEY = "<Replace me>"
 
 PROMPT_TEMPLATE = """
 You are a chatbot created to answer questions related to the given document. 
