@@ -1,7 +1,7 @@
 
 import os
 import streamlit as st
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain_chroma import Chroma
 import config
 from langchain_core.prompts import ChatPromptTemplate
@@ -10,22 +10,20 @@ import shutil
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import chromadb
+from PIL import Image
+import pytesseract
+from embeddings import CustomLangChainEmbeddings
 
 chromadb.api.client.SharedSystemClient.clear_system_cache()
 
 model = ChatOpenAI(model="gpt-4o", temperature=0, max_tokens=None, timeout=None, max_retries=2)
 
-embeddings = OpenAIEmbeddings()
-
-# Initialize Vector Store (Chroma)
-vector_store = Chroma(
-    embedding_function=embeddings,
-    persist_directory="vector_store"
-)
+# Initialize custom embeddings
+custom_embeddings = CustomLangChainEmbeddings()
 
 def doc_splitter(uploaded_file):
     """
-    Processes the uploaded file and splits it into Document chunks.
+    Processes the uploaded file (PDF, TXT, or Image) and splits it into Document chunks.
 
     Args:
         uploaded_file (UploadedFile): The file uploaded via Streamlit's file uploader.
@@ -90,7 +88,7 @@ def add_documents_to_vector_store(chunks):
             shutil.rmtree(config.CHROMA_DIR)
         ## TODO : remove old docs
         vector_store = Chroma(
-            embedding_function=embeddings,
+            embedding_function=custom_embeddings,
             persist_directory=config.CHROMA_DIR
         )
         print("added")
@@ -127,8 +125,7 @@ if "file_processed" not in st.session_state:
     st.session_state.current_file_name = None
 
 def query(q_text):
-    embedding_model = OpenAIEmbeddings()
-    db = Chroma(persist_directory=config.CHROMA_DIR, embedding_function=embedding_model)
+    db = Chroma(persist_directory=config.CHROMA_DIR, embedding_function=custom_embeddings)
     result = db.similarity_search_with_relevance_scores(q_text, k=5)
     if len(result) == 0:
         print("I don't know")
@@ -163,7 +160,7 @@ if query_text or uploaded_file:
                 st.error("🚫 File is too large. Please upload a file smaller than 15MB.")
             else:
                 # Process and split the document
-                if uploaded_file.type == "application/pdf":
+                if uploaded_file.type in ["application/pdf", "text/plain"]:
                     chunks = doc_splitter(uploaded_file)
                     if chunks:
                         add_documents_to_vector_store(chunks)  # Add to vector store
@@ -172,7 +169,7 @@ if query_text or uploaded_file:
                     else:
                         st.warning("⚠️ No valid content to add to the vector store.")
                 else:
-                    st.error("Unsupported file type. Only PDF files are supported.")
+                    st.error("Unsupported file type. Only PDF, text files are supported.")
 
     # Prepare the Prompt for the Model
     prediction = None
