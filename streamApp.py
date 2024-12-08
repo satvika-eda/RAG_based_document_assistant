@@ -10,14 +10,15 @@ import shutil
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import chromadb
-from embeddings import CustomLangChainEmbeddings
+from custom_embeddings import CustomEmbeddings
 
 chromadb.api.client.SharedSystemClient.clear_system_cache()
 
+# ChatGPT 4o
 model = ChatOpenAI(model="gpt-4o", temperature=0, max_tokens=None, timeout=None, max_retries=2)
 
 # Initialize custom embeddings
-custom_embeddings = CustomLangChainEmbeddings()
+custom_embeddings = CustomEmbeddings()
 
 def doc_splitter(uploaded_file):
     """
@@ -79,12 +80,12 @@ def doc_splitter(uploaded_file):
     print(len(chunks))
     return chunks
 
+# Push document to the vector database
 def add_documents_to_vector_store(chunks):
     """Adds Document chunks to the vector store."""
     if chunks:
         if os.path.exists(config.CHROMA_DIR):
             shutil.rmtree(config.CHROMA_DIR)
-        ## TODO : remove old docs
         vector_store = Chroma(
             embedding_function=custom_embeddings,
             persist_directory=config.CHROMA_DIR
@@ -92,6 +93,18 @@ def add_documents_to_vector_store(chunks):
         print("added")
         vector_store.add_documents(chunks)
 
+# Retrieve context from the vectorDB based on similarity score
+def query(q_text):
+    db = Chroma(persist_directory=config.CHROMA_DIR, embedding_function=custom_embeddings)
+    result = db.similarity_search_with_relevance_scores(q_text, k=5)
+    print(result)
+    if len(result) == 0:
+        print("I don't know")
+        return
+    else:
+        return "\n ------ \n".join([doc.page_content for doc, score in result])
+
+# Streamlit user Interface
 st.title("RAG Chatbot")
 
 if "messages" not in st.session_state:
@@ -121,16 +134,6 @@ if st.session_state.show_uploader:
 if "file_processed" not in st.session_state:
     st.session_state.file_processed = False
     st.session_state.current_file_name = None
-
-def query(q_text):
-    db = Chroma(persist_directory=config.CHROMA_DIR, embedding_function=custom_embeddings)
-    result = db.similarity_search_with_relevance_scores(q_text, k=5)
-    print(result)
-    if len(result) == 0:
-        print("I don't know")
-        return
-    else:
-        return "\n ------ \n".join([doc.page_content for doc, score in result])
 
 prediction = None
 
