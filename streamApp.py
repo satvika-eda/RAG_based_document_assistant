@@ -6,17 +6,12 @@ from langchain_chroma import Chroma
 import config
 from langchain_core.prompts import ChatPromptTemplate
 import PyPDF2
-from langchain_community.document_loaders import DirectoryLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
-from langchain_chroma import Chroma
 import shutil
-import os
-import config
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import PyPDF2
-import streamlit as st
+import chromadb
+
+chromadb.api.client.SharedSystemClient.clear_system_cache()
 
 model = ChatOpenAI(model="gpt-4o", temperature=0, max_tokens=None, timeout=None, max_retries=2)
 
@@ -85,6 +80,7 @@ def doc_splitter(uploaded_file):
     # Split the Document into chunks
     chunks = text_splitter.split_documents([doc])
 
+    print(len(chunks))
     return chunks
 
 def add_documents_to_vector_store(chunks):
@@ -97,6 +93,7 @@ def add_documents_to_vector_store(chunks):
             embedding_function=embeddings,
             persist_directory=config.CHROMA_DIR
         )
+        print("added")
         vector_store.add_documents(chunks)
 
 st.title("RAG Chatbot")
@@ -122,8 +119,12 @@ if st.session_state.show_uploader:
         "Upload a file",
         type=["txt", "pdf", "png", "jpg"],
         key="uploader",
-        help="Supported formats: .txt, .pdf, .png, .jpg | Max size: 10MB"
+        help="Supported formats: .txt, .pdf, .png, .jpg | Max size: 15MB"
     )
+
+if "file_processed" not in st.session_state:
+    st.session_state.file_processed = False
+    st.session_state.current_file_name = None
 
 def query(q_text):
     embedding_model = OpenAIEmbeddings()
@@ -150,15 +151,28 @@ if query_text or uploaded_file:
     
     # Handle File Upload
     if uploaded_file:
-        # File Size Validation (Max 10MB)
-        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
-        if uploaded_file.size > MAX_FILE_SIZE:
-            st.error("🚫 File is too large. Please upload a file smaller than 10MB.")
-        else:
-            if uploaded_file.type == "application/pdf":
-                chunks = doc_splitter(uploaded_file)
-                add_documents_to_vector_store(chunks)
-        uploaded_file = None
+        # Check if a new file has been uploaded
+        if (not st.session_state.file_processed) or (uploaded_file.name != st.session_state.current_file_name):
+            # Reset state for new file upload
+            st.session_state.file_processed = False
+            st.session_state.current_file_name = uploaded_file.name
+
+            # File Size Validation (Max 15MB)
+            MAX_FILE_SIZE = 15 * 1024 * 1024  # 15 MB
+            if uploaded_file.size > MAX_FILE_SIZE:
+                st.error("🚫 File is too large. Please upload a file smaller than 15MB.")
+            else:
+                # Process and split the document
+                if uploaded_file.type == "application/pdf":
+                    chunks = doc_splitter(uploaded_file)
+                    if chunks:
+                        add_documents_to_vector_store(chunks)  # Add to vector store
+                        st.session_state.file_processed = True  # Mark as processed
+                        st.success("📂 File processed and added to the vector store!")
+                    else:
+                        st.warning("⚠️ No valid content to add to the vector store.")
+                else:
+                    st.error("Unsupported file type. Only PDF files are supported.")
 
     # Prepare the Prompt for the Model
     prediction = None
