@@ -22,7 +22,7 @@ This project implements a **Retrieval-Augmented Generation (RAG)** chatbot using
 - **[Chroma](https://www.trychroma.com/)**: As the vector database for similarity search.
 - **[PyPDF2](https://pypi.org/project/PyPDF2/)**: For PDF text extraction.
 - **Custom Embeddings**: For tailored representation of document text.
-- **OpenAI GPT**: For natural language understanding and response generation.
+- **OpenAI GPT-4o**: For natural language understanding and response generation.
 
 ---
 
