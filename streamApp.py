@@ -104,7 +104,7 @@ def query(q_text):
         return "\n ------ \n".join([doc.page_content for doc, score in result])
 
 # Streamlit user Interface
-st.title("RAG Chatbot")
+st.title("RAG based Document Assistant")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
